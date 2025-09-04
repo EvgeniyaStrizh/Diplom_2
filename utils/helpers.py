@@ -1,44 +1,34 @@
 import random
 import string
-import requests
-
-
-class ApiClient:
-    BASE_URL = "https://stellarburgers.nomoreparties.site/api"
-
-    def __init__(self):
-        self.session = requests.Session()
-        self.token = None
-
-    def set_token(self, token):
-        self.token = token
-        self.session.headers.update({'Authorization': token})
-
-    def clear_token(self):
-        self.token = None
-        if 'Authorization' in self.session.headers:
-            del self.session.headers['Authorization']
-
-    def post(self, endpoint, json=None):
-        return self.session.post(f"{self.BASE_URL}{endpoint}", json=json)
-
-    def get(self, endpoint):
-        return self.session.get(f"{self.BASE_URL}{endpoint}")
-
-    def patch(self, endpoint, json=None):
-        return self.session.patch(f"{self.BASE_URL}{endpoint}", json=json)
-
-    def delete(self, endpoint):
-        return self.session.delete(f"{self.BASE_URL}{endpoint}")
+from utils.api_client import ApiClient
 
 
 def generate_random_string(length=10):
+    """Генерирует случайную строку заданной длины"""
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def generate_user_data():
+    """Генерирует тестовые данные пользователя"""
     return {
         "email": f"{generate_random_string(8)}@example.com",
         "password": generate_random_string(12),
         "name": generate_random_string(8)
     }
+
+
+def create_user(api_client, user_data):
+    """Создает пользователя и возвращает данные и токен"""
+    response = api_client.post("/auth/register", json=user_data)
+    if response.status_code == 200:
+        token = response.json().get("accessToken")
+        return user_data, token
+    return None, None
+
+
+def delete_user(api_client, token):
+    """Удаляет пользователя по токену"""
+    if token:
+        api_client.set_token(token)
+        api_client.delete("/auth/user")
+        api_client.clear_token()

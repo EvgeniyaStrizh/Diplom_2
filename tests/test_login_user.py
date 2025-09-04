@@ -1,6 +1,7 @@
 import allure
 import pytest
 from utils.helpers import generate_random_string
+from utils.data import STATUS_OK, STATUS_UNAUTHORIZED, SUCCESS_RESPONSES, RESPONSE_FIELDS
 
 
 class TestLoginUser:
@@ -16,9 +17,9 @@ class TestLoginUser:
             response = api_client.post("/auth/login", json=login_data)
 
         with allure.step("Проверить успешный логин"):
-            assert response.status_code == 200
-            assert response.json()["success"] == True
-            assert "accessToken" in response.json()
+            assert response.status_code == STATUS_OK
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_TRUE"]
+            assert RESPONSE_FIELDS["ACCESS_TOKEN"] in response.json()
 
     @allure.title("Логин с неверными credentials")
     def test_login_wrong_credentials_fail(self, api_client, registered_user):
@@ -32,9 +33,9 @@ class TestLoginUser:
             response = api_client.post("/auth/login", json=wrong_login_data)
 
         with allure.step("Проверить ошибку аутентификации"):
-            assert response.status_code == 401
-            assert response.json()["success"] == False
-            assert response.json()["message"] == "email or password are incorrect"
+            assert response.status_code == STATUS_UNAUTHORIZED
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_FALSE"]
+            assert response.json()[RESPONSE_FIELDS["MESSAGE"]] == "email or password are incorrect"
 
     @allure.title("Логин с несуществующим email")
     def test_login_nonexistent_email_fail(self, api_client):
@@ -46,5 +47,5 @@ class TestLoginUser:
             response = api_client.post("/auth/login", json=login_data)
 
         with allure.step("Проверить ошибку аутентификации"):
-            assert response.status_code == 401
-            assert response.json()["success"] == False
+            assert response.status_code == STATUS_UNAUTHORIZED
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_FALSE"]

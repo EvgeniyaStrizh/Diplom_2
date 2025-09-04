@@ -1,36 +1,35 @@
 import pytest
 import allure
-from utils.helpers import ApiClient, generate_user_data, generate_random_string
+from utils.api_client import ApiClient
+from utils.helpers import create_user, delete_user
 
 
 @pytest.fixture
 def api_client():
+    """Фикстура для создания API клиента"""
     return ApiClient()
 
 
 @pytest.fixture
-def user_data():
-    return generate_user_data()
-
-
-@pytest.fixture
-def registered_user(api_client, user_data):
+def registered_user(api_client):
+    """Фикстура для создания зарегистрированного пользователя с предусловиями и постусловиями"""
+    from utils.helpers import generate_user_data
+    
+    # Предусловие: генерируем данные пользователя
+    user_data = generate_user_data()
+    
     # Создаем пользователя
-    response = api_client.post("/auth/register", json=user_data)
-    assert response.status_code == 200
-    token = response.json().get("accessToken")
-
+    user_data, token = create_user(api_client, user_data)
+    
     yield user_data, token
 
-    # Удаляем пользователя после теста
-    if token:
-        api_client.set_token(token)
-        api_client.delete("/auth/user")
-        api_client.clear_token()
+    # Постусловие: удаляем пользователя после теста
+    delete_user(api_client, token)
 
 
 @pytest.fixture
 def auth_api_client(registered_user):
+    """Фикстура для создания авторизованного API клиента"""
     user_data, token = registered_user
     client = ApiClient()
     client.set_token(token)

@@ -1,5 +1,6 @@
 import allure
 import pytest
+from utils.data import STATUS_OK, STATUS_BAD_REQUEST, STATUS_UNAUTHORIZED, STATUS_INTERNAL_SERVER_ERROR, SUCCESS_RESPONSES, ERROR_MESSAGES, RESPONSE_FIELDS
 
 
 class TestOrders:
@@ -8,9 +9,9 @@ class TestOrders:
         # Получаем список ингредиентов
         with allure.step("Получить список доступных ингредиентов"):
             ingredients_response = auth_api_client.get("/ingredients")
-            assert ingredients_response.status_code == 200
+            assert ingredients_response.status_code == STATUS_OK
 
-            ingredients = ingredients_response.json()["data"]
+            ingredients = ingredients_response.json()[RESPONSE_FIELDS["DATA"]]
             assert len(ingredients) > 0
 
             ingredient_ids = [ingredient["_id"] for ingredient in ingredients[:2]]
@@ -20,16 +21,16 @@ class TestOrders:
             response = auth_api_client.post("/orders", json=order_data)
 
         with allure.step("Проверить успешное создание заказа"):
-            assert response.status_code == 200
-            assert response.json()["success"] == True
-            assert "order" in response.json()
+            assert response.status_code == STATUS_OK
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_TRUE"]
+            assert RESPONSE_FIELDS["ORDER"] in response.json()
 
     @allure.title("Создание заказа без авторизации")
     def test_create_order_without_auth_success(self, api_client):
         # Получаем ингредиенты
         with allure.step("Получить ингредиенты для заказа"):
             ingredients_response = api_client.get("/ingredients")
-            ingredients = ingredients_response.json()["data"]
+            ingredients = ingredients_response.json()[RESPONSE_FIELDS["DATA"]]
             ingredient_ids = [ingredient["_id"] for ingredient in ingredients[:2]]
 
         with allure.step("Создать заказ без авторизации"):
@@ -37,8 +38,8 @@ class TestOrders:
             response = api_client.post("/orders", json=order_data)
 
         with allure.step("Проверить создание заказа без авторизации"):
-            assert response.status_code == 200
-            assert response.json()["success"] == True
+            assert response.status_code == STATUS_OK
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_TRUE"]
 
     @allure.title("Создание заказа без ингредиентов")
     def test_create_order_without_ingredients_fail(self, auth_api_client):
@@ -47,9 +48,9 @@ class TestOrders:
             response = auth_api_client.post("/orders", json=order_data)
 
         with allure.step("Проверить ошибку валидации"):
-            assert response.status_code == 400
-            assert response.json()["success"] == False
-            assert "ingredient" in response.json()["message"].lower()
+            assert response.status_code == STATUS_BAD_REQUEST
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_FALSE"]
+            assert "ingredient" in response.json()[RESPONSE_FIELDS["MESSAGE"]].lower()
 
     @allure.title("Создание заказа с неверным хешем ингредиентов")
     def test_create_order_with_invalid_ingredient_hash_fail(self, auth_api_client):
@@ -58,7 +59,7 @@ class TestOrders:
             response = auth_api_client.post("/orders", json=order_data)
 
         with allure.step("Проверить ошибку валидации ингредиентов"):
-            assert response.status_code == 500
+            assert response.status_code == STATUS_INTERNAL_SERVER_ERROR
 
     @allure.title("Получение заказов авторизованного пользователя")
     def test_get_orders_with_auth_success(self, auth_api_client):
@@ -66,9 +67,9 @@ class TestOrders:
             response = auth_api_client.get("/orders")
 
         with allure.step("Проверить успешное получение заказов"):
-            assert response.status_code == 200
-            assert response.json()["success"] == True
-            assert "orders" in response.json()
+            assert response.status_code == STATUS_OK
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_TRUE"]
+            assert RESPONSE_FIELDS["ORDERS"] in response.json()
 
     @allure.title("Получение заказов неавторизованного пользователя")
     def test_get_orders_without_auth_fail(self, api_client):
@@ -76,6 +77,6 @@ class TestOrders:
             response = api_client.get("/orders")
 
         with allure.step("Проверить ошибку авторизации"):
-            assert response.status_code == 401
-            assert response.json()["success"] == False
-            assert response.json()["message"] == "You should be authorised"
+            assert response.status_code == STATUS_UNAUTHORIZED
+            assert response.json()[RESPONSE_FIELDS["SUCCESS"]] == SUCCESS_RESPONSES["SUCCESS_FALSE"]
+            assert response.json()[RESPONSE_FIELDS["MESSAGE"]] == ERROR_MESSAGES["YOU_SHOULD_BE_AUTHORISED"]
